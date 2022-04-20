@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playground DUI</title>
+</head>
+<body>
+  <script type="module" src="index.js"></script>
+  <script type="module">
+    import {fragment, insert} from './index';
+
+    const form = {
+      "group/auth-page": {
+        "type": "form",
+        "use_key": true,
+        "payload": {
+          "group/login": {
+            "payload": {
+              "control/login": {
+                "type": "text",
+                "label": "User login",
+                "required": true
+              }
+            }
+          },
+          "control/password": {
+            "type": "text"
+          }
+        }
+      }
+    };
+
+    const ui = fragment(form);
+    insert(document.body, ui);
+  </script>
+</body>
+</html>
