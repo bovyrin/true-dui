@@ -6,32 +6,27 @@
   <title>Playground DUI</title>
 </head>
 <body>
-  <script type="module" src="index.js"></script>
-  <script type="module">
-    import {fragment, insert} from './index';
-
+  <script src="index.js"></script>
+  <script>
     const form = {
       "group/auth-page": {
-        "type": "form",
+        "role": "form",
         "use_key": true,
-        "payload": {
-          "group/login": {
-            "payload": {
-              "control/login": {
-                "type": "text",
-                "label": "User login",
-                "required": true
-              }
-            }
+        "children": {
+          "input/login": {
+            "role": "text",
+            "label": "Email",
+            "required": true
           },
-          "control/password": {
-            "type": "text"
+          "input/password": {
+            "role": "text",
+            "label": "Password"
           }
         }
       }
     };
 
-    const ui = fragment(form);
+    const ui = build(form);
     insert(document.body, ui);
   </script>
 </body>

@@ -1,151 +1,41 @@
-const fst = xs => xs.shift();
-const snd = xs => fst(xs.slice(1, 2));
-const last = xs => xs.pop();
-const tail = xs => xs.slice(1);
-const init = xs => xs.slice(0, -1);
+// API
+// build
 
-// Document
-// activeElement
-// embeds
-// forms
-// images
-// links
-// visibilityState
-// elementFromPoint()
-// getSelection()
-
-// Node
-// parentNode
-// parentElement
-// childNodes
-// firstChild
-// lastChild
-// isConnected
-// textContent
-// appendChild()
-// insertBefore()
-// cloneNode()
-// replaceChild()
-// removeChild()
-// contains()
-// isEqualNode()
-// isSameNode()
-// normalize()
-
-// Element
-// firstElementChild
-// lastElementChild
-// childElementCount
-// dispatchEvent()
-// removeEventListener()
-// toggleAttribute()
-// hasAttribute()
-// hasAttributes()
-// removeAttribute()
-// setAttribute()
-// getAttribute()
-// getAttributeNames()
-// matches()
+// An specific implementation
+// create
+// edit
+// remove
+// insert
+// prepend
+// append
+// parent
+// children
+// siblings
+// ancestor
+// descendant
+// descendants
 
 
-// Keywords:
-// text ~ (span tag)
-// group (type="section/article/header/...")
-// list
-// media
+// Types of elem
+// group
+// text
+// input
+// button
+// link
 // table
-// control
-// modal
 
-const el = (name, attrs) => {
-  const x = document.createElement(name);
+// Elem's type example
+// <type>/<name>
+//    role: specify element
+//    value: text content or control values
+//    children: nested elements
 
-  for (const k in attrs) {
-    if (k === 'events') {
-      for (const action in attrs[k])
-        x[`on${action}`] = attrs[k][action];
-    } else if (k === 'class') {
-      x.classList.add(attrs.class);
-    } else if (k === 'content') {
-      x.textContent = attrs.content;
-    } else {
-      x.setAttribute(k, attrs[k]);
-    }
-  }
-
-  return x;
-};
-
-const group = attrs => {
-  const name = attrs.type || 'div';
-  delete attrs.type;
-
-  return el(name, attrs);
-}
-
-const control = attrs => {
-  const name = 'input';
-  switch (attrs.type) {
-    case 'longtext': attrs.type = 'textarea';
-  }
-
-  let label;
-  if (attrs.label) {
-    label = el('label', {for: attrs.name, content: attrs.label})
-    delete attrs.label;
-  }
-
-  let x = el(name, attrs);
-
-  if (label) {
-    z = document.createDocumentFragment();
-    insert(z, label);
-    insert(z, x);
-    return z;
-  }
-
-  return x;
-};
-
-const elx = (id, attrs) => {
-  let tag;
-  const [role, key] = id.split('/');
-
-  switch (role) {
-    case 'group':
-      tag = attrs.type || 'div';
-      if (key) attrs.class = key;
-      break;
-    case 'control':
-      tag = 'input';
-      if (key) attrs.name = key
-      break;
-    case 'text':
-      tag = attrs.type === 'block' ? 'p' : 'span';
-      if (key) attrs.class = key;
-      break;
-    default: throw Error('Unknown element\'s type');
-  }
-
-  const x = document.createElement(tag);
-
-  for (const k in attrs) {
-    if (k === 'payload') continue;
-
-    if (k === 'events') {
-      for (const action in attrs[k])
-        x[`on${action}`] = attrs[k][action];
-    } else
-      x.setAttribute(k, attrs[k]);
-  }
-
-  return x;
-};
-
-const drop = el => el.remove();
+const remove = el => el.remove();
 
 const parent = el => el.parentElement;
 const children = (el, sel) => {
+  if (sel == '*') return el.children;
+
   let xs = [];
   for (const x of el.children)
     if (x.matches(sel)) xs.push(x);
@@ -157,7 +47,7 @@ const siblings = (el, sel) =>
 
 const ancestor = (from, sel) => from.closest(sel);
 const descendant = (from, sel) => from.querySelector(sel);
-const descendants = (from, sel) => [...from.querySelector(sel)];
+const descendants = (from, sel) => [...from.querySelectorAll(sel)];
 
 const wrapEls = els =>
   els.reduce((fragm, el) => {
@@ -168,7 +58,7 @@ const wrapEls = els =>
 const insert = (mount, a) => {
   mount.append(Array.isArray(a) ? wrapEls(a) : a);
 
-  return a;
+  return mount;
 }
 
 const prepend = (mount, a) =>
@@ -178,11 +68,92 @@ const append = (mount, a) =>
   mount.after(Array.isArray(a) ? wrapEls(a) : a);
 
 const edit = (el, attrs) => {
+  if (attrs.use_key) {
+    const className = (attrs.class || [])
+    className.push(attrs.key)
+    attrs.class = className;
+    delete attrs.use_key;
+    delete attrs.key;
+  }
+
   for (const k in attrs) {
-    el.setAttribute(k, attrs[k]);
+    if (k === 'actions') {
+      for (const action in attrs[k])
+        el[`on${action}`] = attrs[k][action];
+    } else if (k === 'class') {
+      el.classList.add(...attrs[k]);
+    } else {
+      el.setAttribute(k, attrs[k]);
+    }
   }
 
   return el;
+};
+
+const create = (name, attrs) => edit(document.createElement(name), attrs);
+
+const group = attrs => {
+  const name = attrs.role || 'div';
+  if (attrs.role) delete attrs.role;
+
+  return create(name, attrs);
+};
+
+const input = attrs => {
+  const role = attrs.role;
+  if (attrs.role) delete attrs.role;
+
+  attrs.name = attrs.key;
+  attrs.id = attrs.key;
+
+  let label = null;
+  if (attrs.label) {
+    label = create('label', {for: attrs.name});
+    label.textContent = attrs.label || '';
+    delete attrs.label;
+  }
+
+  let input;
+  switch (role) {
+    case 'num':
+      attrs.type = 'number';
+      input = create('input', attrs);
+      return insert(group({}), label ? [label, input] : input);
+    case 'list':
+      const options = (attrs.items || []).map(([k, v]) => {
+        const option = create('option', {value: k});
+        option.textContent = v;
+        if (attrs.value == k) option.setAttribute('selected', true);
+        return option;
+      });
+      if (attrs.items) delete attrs.items;
+
+      input = insert(
+        create('select', attrs),
+        options
+      );
+
+      return insert(group({}), label ? [label, input] : input);
+    default:
+      attrs.type = 'text';
+      input = create('input', attrs);
+      return insert(group({}), label ? [label, input] : input);
+  }
+};
+
+const elem = (id, attrs) => {
+  const [type, key] = id.split('/');
+  attrs.key = key;
+
+  switch (type) {
+    case 'group': return group(attrs);
+    case 'text': return text(attrs);
+    case 'link': return link(attrs);
+    case 'input': return input(attrs);
+    case 'button': return button(attrs);
+    case 'table': return table(attrs);
+    default: throw new Error('Unknown type');
+  };
 };
 
 const clone = el => {
@@ -207,43 +178,28 @@ const clone = el => {
   return el2;
 };
 
-const fragment = (t, dom = document.createDocumentFragment()) => {
-  for (const k of Object.keys(t)) {
-    const [role, key] = k.split('/');
+// TODO: extract fragment's function
+const build = (dui, dom = document.createDocumentFragment()) => {
+  for (const k of Object.keys(dui)) {
+    let attrs = {...dui[k]};
+    delete attrs.children;
 
-    let attrs = {};
-    for (const attr of Object.keys(t[k])) {
-      if (attr === 'payload') continue;
-      attrs[attr] = t[k][attr];
-    }
-    if (role === 'control')
-      attrs.name = key;
-    else if (attrs.use_key) {
-      attrs.class = key;
-      delete attrs.use_key;
+    // TODO: extract the function
+    let x = elem(k, attrs);
+
+    if (dui[k].children != undefined) {
+      x = build(dui[k].children, x);
     }
 
-    let x;
-    switch (role) {
-      case 'group':
-        x = group(attrs);
-        break;
-      case 'control':
-        x = control(attrs);
-        break;
-    }
-
-    if (t[k].payload != undefined) {
-      x = fragment(t[k].payload, x);
-    }
-
+    // TODO: extract the function
     insert(dom, x);
   }
 
   return dom;
 };
 
-// export {
-//   fragment, insert, prepend, append, clone, edit, children, parent, ancestor,
-//   descendant, descendants, siblings, drop
-// };
+export {
+  build, create, insert, prepend, append, clone, edit, children, parent,
+  ancestor, descendant, descendants, siblings, remove
+};
+

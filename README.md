@@ -11,17 +11,16 @@ description.
 ```yaml
 ---
 group/auth-page:
-  type: form
+  role: form
   use_key: true
-  payload:
-    group/login:
-      payload:
-        control/login:
-          type: text
-          label: User login
-          required: true
-    control/password:
-      type: text
+  children:
+    input/login:
+      role: text
+      label: Email
+      required: true
+    input/password:
+      role: text
+      label: Password
 ```
 
 For example - this description can be converted in browser DOM:
@@ -29,9 +28,12 @@ For example - this description can be converted in browser DOM:
 ```html
 <form class="auth-page">
   <div>
-    <label for="login">User login</label>
-    <input type="text" required="true" name="login">
+    <label for="login">Email</label>
+    <input required="true" name="login" id="login" type="text">
   </div>
-  <input type="text" name="password">
+  <div>
+    <label for="password">Password</label>
+    <input name="password" id="password" type="text">
+  </div>
 </form>
 ```
