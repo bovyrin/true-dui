@@ -73,8 +73,8 @@ const edit = (el, attrs) => {
     className.push(attrs.key)
     attrs.class = className;
     delete attrs.use_key;
-    delete attrs.key;
   }
+  delete attrs.key;
 
   for (const k in attrs) {
     if (k === 'actions') {
@@ -97,6 +97,27 @@ const group = attrs => {
   if (attrs.role) delete attrs.role;
 
   return create(name, attrs);
+};
+
+const text = attrs => {
+  let name
+  switch (attrs.role) {
+    case 'paragraph': name = 'p'; break;
+    case 'title': name = 'h1'; break;
+    case 'heading': name = 'h2'; break;
+    case 'subheading': name = 'h3'; break;
+    case 'subheading2': name = 'h4'; break;
+    default: name = 'span'; break;
+  }
+
+  if (attrs.role) delete attrs.role;
+
+  const value = attrs.value || '';
+  if (attrs.value) delete attrs.value;
+
+  let text = create(name, attrs);
+  text.textContent = value;
+  return text;
 };
 
 const input = attrs => {
@@ -198,8 +219,8 @@ const build = (dui, dom = document.createDocumentFragment()) => {
   return dom;
 };
 
-export {
-  build, create, insert, prepend, append, clone, edit, children, parent,
-  ancestor, descendant, descendants, siblings, remove
-};
+// export {
+//   build, create, insert, prepend, append, clone, edit, children, parent,
+//   ancestor, descendant, descendants, siblings, remove
+// };
 
