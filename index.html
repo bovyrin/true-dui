@@ -9,25 +9,28 @@
   <script src="index.js"></script>
   <script>
     const form = {
-      "group/auth-page": {
-        "role": "form",
-        "use_key": true,
-        "children": {
-          "input/login": {
-            "role": "text",
-            "label": "Email",
-            "required": true
-          },
-          "input/password": {
-            "role": "text",
-            "label": "Password"
-          }
+      "name": "group/sign-in-form",
+      "type": "form",
+      "children": [
+        {
+          "name": "control/email",
+          "type": "email",
+          "label": "Email"
+        },
+        {
+          "name": "control/password",
+          "type": "secret",
+          "label": "password"
+        },
+        {
+          "name": "button/submit",
+          "text": "Save"
         }
-      }
+      ]
     };
 
-    const ui = build(form);
-    insert(document.body, ui);
+    const x = build(form);
+    console.log(x)
   </script>
 </body>
 </html>

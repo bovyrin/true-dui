@@ -1,34 +1,72 @@
-// API
-// build
+const group = attrs => {
+  return setAttrs(document.createElement(attrs.type || 'div'), attrs);
+};
 
-// An specific implementation
-// create
-// edit
-// remove
-// insert
-// prepend
-// append
-// parent
-// children
-// siblings
-// ancestor
-// descendant
-// descendants
+const control = attrs => {
+  return setAttrs(document.createElement('input'), attrs);
+};
+
+const button = attrs => {
+  return setAttrs(document.createElement('button'), attrs);
+};
+
+const create = attrs => {
+  const [el, key] = attrs.name.split('/');
+  attrs.key = key;
+
+  switch (el) {
+    case 'group': return group(attrs);
+    case 'control': return control(attrs);
+    case 'button': return button(attrs);
+    default: throw new Error(`Unknown element: ${el}`);
+  }
+};
+
+const setAttrs = (el, attrs) => {
+  const skipList = ['children', 'use_key', 'key', 'name'];
+  if (el.nodeName !== 'INPUT') skipList.push('type');
+
+  if (attrs.use_key)
+    attrs.class = (attrs.class || []).push(attrs.key);
+
+  for (const k in attrs) {
+    if (skipList.indexOf(k) !== -1) continue;
+
+    switch (k) {
+      case 'actions':
+        for (const action in attrs['actions'])
+          el[`on${action}`] = attrs['actions'][action];
+        break;
+      case 'class':
+        el.classList.add(...attrs['class']);
+        break;
+      case 'text':
+        el.textContent = attrs['text'];
+        break;
+      default:
+        el.setAttribute(k, attrs[k]);
+    }
+  }
+
+  return el;
+};
 
 
-// Types of elem
-// group
-// text
-// input
-// button
-// link
-// table
+const build = (elem, ui = document.createDocumentFragment()) => {
+  let x = create(elem);
+  insert(ui, x);
 
-// Elem's type example
-// <type>/<name>
-//    role: specify element
-//    value: text content or control values
-//    children: nested elements
+  if (!elem.children) {
+    return ui;
+  }
+
+  for (const child of elem.children) {
+    ui = build(child, x);
+  }
+
+  return ui;
+};
+
 
 const remove = el => el.remove();
 
@@ -64,118 +102,10 @@ const insert = (mount, a) => {
 const prepend = (mount, a) =>
   mount.before(Array.isArray(a) ? wrapEls(a) : a);
 
-const append = (mount, a) =>
+const append = (mount, a) => {
   mount.after(Array.isArray(a) ? wrapEls(a) : a);
-
-const edit = (el, attrs) => {
-  if (attrs.use_key) {
-    const className = (attrs.class || [])
-    className.push(attrs.key)
-    attrs.class = className;
-    delete attrs.use_key;
-  }
-  delete attrs.key;
-
-  for (const k in attrs) {
-    if (k === 'actions') {
-      for (const action in attrs[k])
-        el[`on${action}`] = attrs[k][action];
-    } else if (k === 'class') {
-      el.classList.add(...attrs[k]);
-    } else {
-      el.setAttribute(k, attrs[k]);
-    }
-  }
-
-  return el;
-};
-
-const create = (name, attrs) => edit(document.createElement(name), attrs);
-
-const group = attrs => {
-  const name = attrs.role || 'div';
-  if (attrs.role) delete attrs.role;
-
-  return create(name, attrs);
-};
-
-const text = attrs => {
-  let name
-  switch (attrs.role) {
-    case 'paragraph': name = 'p'; break;
-    case 'title': name = 'h1'; break;
-    case 'heading': name = 'h2'; break;
-    case 'subheading': name = 'h3'; break;
-    case 'subheading2': name = 'h4'; break;
-    default: name = 'span'; break;
-  }
-
-  if (attrs.role) delete attrs.role;
-
-  const value = attrs.value || '';
-  if (attrs.value) delete attrs.value;
-
-  let text = create(name, attrs);
-  text.textContent = value;
-  return text;
-};
-
-const input = attrs => {
-  const role = attrs.role;
-  if (attrs.role) delete attrs.role;
-
-  attrs.name = attrs.key;
-  attrs.id = attrs.key;
-
-  let label = null;
-  if (attrs.label) {
-    label = create('label', {for: attrs.name});
-    label.textContent = attrs.label || '';
-    delete attrs.label;
-  }
-
-  let input;
-  switch (role) {
-    case 'num':
-      attrs.type = 'number';
-      input = create('input', attrs);
-      return insert(group({}), label ? [label, input] : input);
-    case 'list':
-      const options = (attrs.items || []).map(([k, v]) => {
-        const option = create('option', {value: k});
-        option.textContent = v;
-        if (attrs.value == k) option.setAttribute('selected', true);
-        return option;
-      });
-      if (attrs.items) delete attrs.items;
-
-      input = insert(
-        create('select', attrs),
-        options
-      );
-
-      return insert(group({}), label ? [label, input] : input);
-    default:
-      attrs.type = 'text';
-      input = create('input', attrs);
-      return insert(group({}), label ? [label, input] : input);
-  }
-};
-
-const elem = (id, attrs) => {
-  const [type, key] = id.split('/');
-  attrs.key = key;
-
-  switch (type) {
-    case 'group': return group(attrs);
-    case 'text': return text(attrs);
-    case 'link': return link(attrs);
-    case 'input': return input(attrs);
-    case 'button': return button(attrs);
-    case 'table': return table(attrs);
-    default: throw new Error('Unknown type');
-  };
-};
+  return mount;
+}
 
 const clone = el => {
   const el2 = el.cloneNode(true);
@@ -197,26 +127,6 @@ const clone = el => {
   }
 
   return el2;
-};
-
-// TODO: extract fragment's function
-const build = (dui, dom = document.createDocumentFragment()) => {
-  for (const k of Object.keys(dui)) {
-    let attrs = {...dui[k]};
-    delete attrs.children;
-
-    // TODO: extract the function
-    let x = elem(k, attrs);
-
-    if (dui[k].children != undefined) {
-      x = build(dui[k].children, x);
-    }
-
-    // TODO: extract the function
-    insert(dom, x);
-  }
-
-  return dom;
 };
 
 // export {

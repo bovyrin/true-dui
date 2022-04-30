@@ -1,0 +1,13 @@
+---
+name: group/sign-in-form
+type: form
+children:
+  - name: control/email
+    type: email
+    label: Email
+  - name: control/password
+    type: secret
+    label: password
+  - name: button/submit
+    text: Save
+
